@@ -38,6 +38,10 @@ def get_imputer(imputer):
         return 'drop'
     if imputer == 'Most frequent value':
         return SimpleImputer(strategy='most_frequent', missing_values=np.nan)
+    if imputer == 'Constant value: "missing_value"':
+        return SimpleImputer(strategy='constant', missing_values=np.nan, fill_value="missing_value")
+    if imputer == 'Constant value: -1':
+        return SimpleImputer(strategy='constant', missing_values=np.nan, fill_value=-1)
     if imputer == 'Mean':
         return SimpleImputer(strategy='mean', missing_values=np.nan)
     if imputer == 'Median':
@@ -47,9 +51,7 @@ def get_imputer(imputer):
 def get_pipeline_missing_num(imputer, scaler):
     if imputer == 'None':
         return 'drop'
-    if imputer == 'Mean':
-        pipeline = make_pipeline(get_imputer(imputer))
-    if imputer == 'Median':
+    if imputer == 'Mean' or imputer == 'Median' or imputer == 'Most frequent value' or imputer == 'Constant value: -1':
         pipeline = make_pipeline(get_imputer(imputer))
     if (scaler != 'None'):
         pipeline.steps.append(('scaling', get_scaling(scaler)))
@@ -59,7 +61,7 @@ def get_pipeline_missing_num(imputer, scaler):
 def get_pipeline_missing_cat(imputer, encoder):
     if imputer == 'None' or encoder == 'None':
         return 'drop'
-    if imputer == 'Most frequent value':
+    if imputer == 'Most frequent value' or imputer == 'Constant value: "missing_value"':
         pipeline = make_pipeline(get_imputer(imputer))
     if (imputer != 'None'):
         pipeline.steps.append(('encoding', get_encoding(encoder)))
@@ -271,9 +273,9 @@ if (len(text_cols) != 0):
 st.sidebar.subheader('Column transformation')
 
 categorical_imputer = wrapper_selectbox('Handling categorical missing values',
-                                        ['None', 'Most frequent value', 'Delete row'], len(cat_cols_missing) != 0)
+                                        ['None', 'Most frequent value', 'Constant value: "missing_value"'], len(cat_cols_missing) != 0)
 numerical_imputer = wrapper_selectbox('Handling numerical missing values',
-                                      ['None', 'Median', 'Mean', 'Delete row'], len(num_cols_missing) != 0)
+                                      ['None', 'Median', 'Mean', 'Most frequent value', 'Constant value: -1'], len(num_cols_missing) != 0)
 
 encoder = wrapper_selectbox('Encoding categorical values', ['None', 'OneHotEncoder'], len(cat_cols) != 0)
 scaler = wrapper_selectbox('Scaling', ['None', 'Standard scaler', 'MinMax scaler', 'Robust scaler'], len(num_cols) != 0)
@@ -328,7 +330,7 @@ else:
 st.sidebar.title('Cross validation')
 type = st.sidebar.selectbox('Type', ['None', 'KFold', 'StratifiedKFold'])
 nb_splits = 0
-if (type is not 'None'):
+if (type != 'None'):
     nb_splits = st.sidebar.slider('Number of splits', min_value=3, max_value=20)
 folds = get_fold(type, nb_splits)
 
@@ -398,10 +400,16 @@ preprocessing_pipeline.fit(X)
 X_preprocessed = preprocessing_pipeline.transform(X)
 
 st.header('Preprocessed dataset')
-if (X_preprocessed.shape[1] > 100):
-    st.text(f'Processed dataframe is too big to display, shape: {X_preprocessed.shape}')
-else:
+display_dataframe = True
+try:
+    pd.DataFrame(X_preprocessed)
+except:
+    display_dataframe = False
+if (X_preprocessed.shape[1] < 100 and display_dataframe):
+    st.text(f'Processed dataframe has shape: {X_preprocessed.shape}')
     st.write(X_preprocessed)
+else:
+    st.text(f'Processed dataframe is too big or too sparse to display, shape: {X_preprocessed.shape}')
 
 # cv_score = cross_val_score(pipeline, X, Y, cv=folds)
 # st.subheader('Results')
