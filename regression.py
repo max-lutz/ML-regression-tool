@@ -10,16 +10,16 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import RidgeClassifier
+from sklearn.linear_model import LinearRegression, ElasticNet, Lasso, Ridge
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from lightgbm import LGBMRegressor
+from xgboost.sklearn import XGBRegressor
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.decomposition import KernelPCA, TruncatedSVD
-from sklearn.datasets import load_iris, load_diabetes, load_wine
 
 import streamlit_download_button as button
 
@@ -99,24 +99,31 @@ def convert_none(object):
 
 
 def get_ml_algorithm(algorithm, hyperparameters):
-    if algorithm == 'Logistic regression':
-        return LogisticRegression(solver=hyperparameters['solver'], penalty=convert_none(hyperparameters['penalty']), C=hyperparameters['C'])
-    if algorithm == 'Support vector':
-        return SVC(kernel=hyperparameters['kernel'], C=hyperparameters['C'])
-    if algorithm == 'K nearest neighbors':
-        return KNeighborsClassifier(n_neighbors=hyperparameters['n_neighbors'], metric=hyperparameters['metric'], weights=hyperparameters['weights'])
-    if algorithm == 'Ridge classifier':
-        return RidgeClassifier(alpha=hyperparameters['alpha'], solver=hyperparameters['solver'])
+    if algorithm == 'Linear regression':
+        return LinearRegression()
+    if algorithm == 'SVR':
+        return SVR(kernel=hyperparameters['kernel'], C=hyperparameters['C'])
+    if algorithm == 'Ridge':
+        return Ridge(alpha=hyperparameters['alpha'], solver=hyperparameters['solver'])
+    if algorithm == 'Lasso':
+        return Lasso(alpha=hyperparameters['alpha'])
+    if algorithm == 'ElasticNet':
+        return ElasticNet(alpha=hyperparameters['alpha'], l1_ratio=hyperparameters['l1_ratio'])
+    if algorithm == 'KNeighbors Regressor':
+        return KNeighborsRegressor(n_neighbors=hyperparameters['n_neighbors'], weights=hyperparameters['weights'])
     if algorithm == 'Decision tree':
-        return DecisionTreeClassifier(criterion=hyperparameters['criterion'], min_samples_split=hyperparameters['min_samples_split'])
+        return DecisionTreeRegressor(criterion=hyperparameters['criterion'], max_depth=hyperparameters['max_depth'],
+                                     min_samples_split=hyperparameters['min_samples_split'])
     if algorithm == 'Random forest':
-        return RandomForestClassifier(n_estimators=hyperparameters['n_estimators'], criterion=hyperparameters['criterion'], min_samples_split=hyperparameters['min_samples_split'])
-    if algorithm == 'XGBoost':
-        return XGBClassifier(n_estimators=hyperparameters['n_estimators'], max_depth=hyperparameters['max_depth'],
-                             learning_rate=hyperparameters['learning_rate'], booster=hyperparameters['booster'])
-    if algorithm == 'LightGBM':
-        return LGBMClassifier(num_leaves=hyperparameters['num_leaves'], max_depth=hyperparameters['max_depth'],
-                              learning_rate=hyperparameters['learning_rate'])
+        return RandomForestRegressor(n_estimators=hyperparameters['n_estimators'],
+                                     criterion=hyperparameters['criterion'], max_depth=hyperparameters['max_depth'],
+                                     min_samples_split=hyperparameters['min_samples_split'])
+    # if algorithm == 'XGBoost':
+    #     return XGBClassifier(n_estimators=hyperparameters['n_estimators'], max_depth=hyperparameters['max_depth'],
+    #                          learning_rate=hyperparameters['learning_rate'], booster=hyperparameters['booster'])
+    # if algorithm == 'LightGBM':
+    #     return LGBMClassifier(num_leaves=hyperparameters['num_leaves'], max_depth=hyperparameters['max_depth'],
+    #                           learning_rate=hyperparameters['learning_rate'])
 
 
 def get_dim_reduc_algo(algorithm, hyperparameters):
@@ -193,13 +200,13 @@ ROW = 1
 
 title_spacer1, title, title_spacer_2 = st.columns((.1, ROW, .1))
 with title:
-    st.title('Classification exploratory tool')
+    st.title('Regression exploratory tool')
     st.markdown("""
             This app allows you to test different machine learning algorithms and combinations of preprocessing techniques 
-            to classify passengers from the Titanic dataset!
-            The dataset is composed of passengers from the Titanic and if they survived or not.
+            to solve a regression problem.
+            You can choose among multiple datasets or upload your own.
             * Use the menu on the left to select ML algorithm and hyperparameters
-            * The code can be accessed at [code](https://github.com/max-lutz/ML-exploration-tool).
+            * The code can be accessed at [code](https://github.com/max-lutz/ML-regression-tool).
             * Click on how to use this app to get more explanation.
             """)
 
@@ -334,45 +341,45 @@ if (type != 'None'):
     nb_splits = st.sidebar.slider('Number of splits', min_value=3, max_value=20)
 folds = get_fold(type, nb_splits)
 
-# st.sidebar.title('Model selection')
-# classifier_list = ['Logistic regression', 'Support vector', 'K nearest neighbors',
-#                    'Ridge classifier', 'Decision tree', 'Random forest', 'XGBoost', 'LightGBM']
-# classifier = st.sidebar.selectbox('', classifier_list)
+st.sidebar.title('Model selection')
+regressor_list = ['Linear regression', 'SVR', 'Ridge', 'Lasso', 'ElasticNet', 'KNeighbors Regressor', 'Decision Tree Regressor',
+                  'Random Forest Regressor', 'LGBM Regressor', 'XGB Regressor']
+regressor = st.sidebar.selectbox('', regressor_list)
 
-# st.sidebar.header('Hyperparameters selection')
-# hyperparameters = {}
-# if (classifier == 'Logistic regression'):
-#     hyperparameters['solver'] = st.sidebar.selectbox(
-#         'Solver (default = lbfgs)', ['lbfgs', 'newton-cg', 'liblinear', 'sag', 'saga'])
-#     if (hyperparameters['solver'] == 'liblinear' or hyperparameters['solver'] == 'saga'):
-#         hyperparameters['penalty'] = st.sidebar.selectbox('Penalty (default = l2)', ['l1', 'l2'])
-#     else:
-#         hyperparameters['penalty'] = st.sidebar.selectbox('Penalty (default = l2)', ['l2'])
-#     hyperparameters['C'] = st.sidebar.selectbox('C (default = 1.0)', [100, 10, 1, 0.1, 0.01])
+st.sidebar.header('Hyperparameters selection')
+hyperparameters = {}
+if (regressor == 'SVR'):
+    hyperparameters['kernel'] = st.sidebar.selectbox('Kernel (default = rbf)', ['rbf', 'linear', 'poly', 'sigmoid'])
+    hyperparameters['C'] = st.sidebar.slider('C (default = 1.0)', 0.0, 10.0, 1.0, 0.05)
 
-# if (classifier == 'Ridge classifier'):
-#     hyperparameters['alpha'] = st.sidebar.slider('Alpha (default value = 1.0)', 0.0, 10.0, 1.0, 0.1)
-#     hyperparameters['solver'] = st.sidebar.selectbox(
-#         'Solver (default = auto)', ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'])
+if (regressor == 'Ridge'):
+    hyperparameters['alpha'] = st.sidebar.slider('Alpha (default value = 1.0)', 0.0, 10.0, 1.0, 0.05)
+    hyperparameters['solver'] = st.sidebar.selectbox(
+        'Solver (default = auto)', ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga', 'lbfgs'])
 
-# if (classifier == 'K nearest neighbors'):
-#     hyperparameters['n_neighbors'] = st.sidebar.slider('Number of neighbors (default value = 5)', 1, 21, 5, 1)
-#     hyperparameters['metric'] = st.sidebar.selectbox('Metric (default = minkowski)', [
-#                                                      'minkowski', 'euclidean', 'manhattan', 'chebyshev'])
-#     hyperparameters['weights'] = st.sidebar.selectbox('Weights (default = uniform)', ['uniform', 'distance'])
+if (regressor == 'Lasso'):
+    hyperparameters['alpha'] = st.sidebar.slider('Alpha (default value = 1.0)', 0.0, 10.0, 1.0, 0.05)
 
-# if (classifier == 'Support vector'):
-#     hyperparameters['kernel'] = st.sidebar.selectbox('Kernel (default = rbf)', ['rbf', 'poly', 'sigmoid'])
-#     hyperparameters['C'] = st.sidebar.selectbox('C (default = 1.0)', [100, 10, 1, 0.1, 0.01])
+if (regressor == 'ElasticNet'):
+    hyperparameters['alpha'] = st.sidebar.slider('Alpha (default value = 1.0)', 0.0, 10.0, 1.0, 0.05)
+    hyperparameters['l1_ratio'] = st.sidebar.slider('l1_ratio (default value = 0.5)', 0.0, 1.0, 0.5, 0.01)
 
-# if (classifier == 'Decision tree'):
-#     hyperparameters['criterion'] = st.sidebar.selectbox('Criterion (default = gini)', ['gini', 'entropy'])
-#     hyperparameters['min_samples_split'] = st.sidebar.slider('Min sample splits (default = 2)', 2, 20, 2, 1)
+if (regressor == 'KNeighbors Regressor'):
+    hyperparameters['n_neighbors'] = st.sidebar.slider('Number of neighbors (default value = 5)', 1, 21, 5, 1)
+    hyperparameters['weights'] = st.sidebar.selectbox('Weights (default = uniform)', ['uniform', 'distance'])
 
-# if (classifier == 'Random forest'):
-#     hyperparameters['n_estimators'] = st.sidebar.slider('Number of estimators (default = 100)', 10, 500, 100, 10)
-#     hyperparameters['criterion'] = st.sidebar.selectbox('Criterion (default = gini)', ['gini', 'entropy'])
-#     hyperparameters['min_samples_split'] = st.sidebar.slider('Min sample splits (default = 2)', 2, 20, 2, 1)
+if (regressor == 'Decision Tree Regressor'):
+    hyperparameters['criterion'] = st.sidebar.selectbox('Criterion (default = squared_error)',
+                                                        ['squared_error', 'friedman_mse', 'absolute_error', 'poisson'])
+    hyperparameters['min_samples_split'] = st.sidebar.slider('Min sample splits (default = 2)', 2, 20, 2, 1)
+    hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth (default = None)', -1, 30, -1, 1)
+
+if (regressor == 'Random forest'):
+    hyperparameters['n_estimators'] = st.sidebar.slider('Number of estimators (default = 100)', 10, 500, 100, 10)
+    hyperparameters['criterion'] = st.sidebar.selectbox('Criterion (default = squared_error)',
+                                                        ['squared_error', 'friedman_mse', 'absolute_error', 'poisson'])
+    hyperparameters['min_samples_split'] = st.sidebar.slider('Min sample splits (default = 2)', 2, 20, 2, 1)
+    hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth (default = None)', -1, 30, -1, 1)
 
 # if (classifier == 'XGBoost'):
 #     hyperparameters['booster'] = st.sidebar.selectbox('Algorithm (default = gbtree)', ['gbtree', 'dart', 'gblinear'])
@@ -390,11 +397,11 @@ preprocessing_pipeline = Pipeline([
     ('dimension reduction', get_dim_reduc_algo(dimension_reduction_algorithm, hyperparameters_dim_reduc))
 ])
 
-# pipeline = Pipeline([
-#     ('preprocessing', preprocessing),
-#     ('dimension reduction', get_dim_reduc_algo(dimension_reduction_algorithm, hyperparameters_dim_reduc)),
-#     ('ml', get_ml_algorithm(classifier, hyperparameters))
-# ])
+pipeline = Pipeline([
+    ('preprocessing', preprocessing),
+    ('dimension reduction', get_dim_reduc_algo(dimension_reduction_algorithm, hyperparameters_dim_reduc)),
+    ('ml', get_ml_algorithm(regressor, hyperparameters))
+])
 
 preprocessing_pipeline.fit(X)
 X_preprocessed = preprocessing_pipeline.transform(X)
@@ -411,12 +418,12 @@ if (X_preprocessed.shape[1] < 100 and display_dataframe):
 else:
     st.text(f'Processed dataframe is too big or too sparse to display, shape: {X_preprocessed.shape}')
 
-# cv_score = cross_val_score(pipeline, X, Y, cv=folds)
-# st.subheader('Results')
-# st.write('Accuracy : ', round(cv_score.mean()*100, 4), '%')
-# st.write('Standard deviation : ', round(cv_score.std()*100, 4), '%')
+cv_score = cross_val_score(pipeline, X, Y, cv=folds)
+st.subheader('Results')
+st.write('Score : ', round(cv_score.mean()*100, 4), '%')
+st.write('Standard deviation : ', round(cv_score.std()*100, 4), '%')
 
-# st.text(get_ml_algorithm(classifier, hyperparameters))
+st.text(get_ml_algorithm(regressor, hyperparameters))
 
 
 # st.subheader('Download pipeline')
