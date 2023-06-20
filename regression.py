@@ -98,6 +98,15 @@ def convert_none(object):
     return object
 
 
+def get_metric_name(metric):
+    if (metric == 'MSE'):
+        return 'neg_mean_squared_error'
+    if (metric == 'RMSE'):
+        return 'neg_root_mean_squared_error'
+    if (metric == 'R²'):
+        return 'r2'
+
+
 def get_ml_algorithm(algorithm, hyperparameters):
     if algorithm == 'Linear regression':
         return LinearRegression()
@@ -341,6 +350,9 @@ if (type != 'None'):
     nb_splits = st.sidebar.slider('Number of splits', min_value=3, max_value=20)
 folds = get_fold(type, nb_splits)
 
+st.sidebar.title('Metric selection')
+metric = st.sidebar.selectbox('', ['MSE', 'RMSE', 'R²'])
+
 st.sidebar.title('Model selection')
 regressor_list = ['Linear regression', 'SVR', 'Ridge', 'Lasso', 'ElasticNet', 'KNeighbors Regressor', 'Decision Tree Regressor',
                   'Random Forest Regressor', 'LGBM Regressor', 'XGB Regressor']
@@ -401,6 +413,7 @@ pipeline = Pipeline([
     ('preprocessing', preprocessing),
     ('dimension reduction', get_dim_reduc_algo(dimension_reduction_algorithm, hyperparameters_dim_reduc)),
     ('ml', get_ml_algorithm(regressor, hyperparameters))
+
 ])
 
 preprocessing_pipeline.fit(X)
@@ -418,13 +431,11 @@ if (X_preprocessed.shape[1] < 100 and display_dataframe):
 else:
     st.text(f'Processed dataframe is too big or too sparse to display, shape: {X_preprocessed.shape}')
 
-cv_score = cross_val_score(pipeline, X, Y, cv=folds)
+
+cv_score = cross_val_score(pipeline, X, Y, cv=folds, scoring=get_metric_name(metric))
 st.subheader('Results')
-st.write('Score : ', round(cv_score.mean()*100, 4), '%')
-st.write('Standard deviation : ', round(cv_score.std()*100, 4), '%')
-
-st.text(get_ml_algorithm(regressor, hyperparameters))
-
+st.write(f'Score [{metric}]: {round(abs(cv_score).mean(), 4)}')
+st.write(f'Relative standard deviation : {round(100*abs(cv_score).std()/abs(cv_score).mean(), 4)}%')
 
 # st.subheader('Download pipeline')
 # filename = 'classification.model'
