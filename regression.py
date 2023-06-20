@@ -431,14 +431,11 @@ if (X_preprocessed.shape[1] < 100 and display_dataframe):
 else:
     st.text(f'Processed dataframe is too big or too sparse to display, shape: {X_preprocessed.shape}')
 
-# scorer = make_scorer()
+
 cv_score = cross_val_score(pipeline, X, Y, cv=folds, scoring=get_metric_name(metric))
 st.subheader('Results')
 st.write(f'Score [{metric}]: {round(abs(cv_score).mean(), 4)}')
 st.write(f'Relative standard deviation : {round(100*abs(cv_score).std()/abs(cv_score).mean(), 4)}%')
-
-st.text(get_ml_algorithm(regressor, hyperparameters))
-
 
 # st.subheader('Download pipeline')
 # filename = 'classification.model'
