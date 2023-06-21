@@ -9,7 +9,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.compose import make_column_transformer
-from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score, cross_val_predict
 from sklearn.linear_model import LinearRegression, ElasticNet, Lasso, Ridge
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -120,12 +120,12 @@ def get_ml_algorithm(algorithm, hyperparameters):
         return ElasticNet(alpha=hyperparameters['alpha'], l1_ratio=hyperparameters['l1_ratio'])
     if algorithm == 'KNeighbors Regressor':
         return KNeighborsRegressor(n_neighbors=hyperparameters['n_neighbors'], weights=hyperparameters['weights'])
-    if algorithm == 'Decision tree':
-        return DecisionTreeRegressor(criterion=hyperparameters['criterion'], max_depth=hyperparameters['max_depth'],
+    if algorithm == 'Decision Tree Regressor':
+        return DecisionTreeRegressor(max_features=hyperparameters['max_features'],
                                      min_samples_split=hyperparameters['min_samples_split'])
-    if algorithm == 'Random forest':
+    if algorithm == 'Random Forest Regressor':
         return RandomForestRegressor(n_estimators=hyperparameters['n_estimators'],
-                                     criterion=hyperparameters['criterion'], max_depth=hyperparameters['max_depth'],
+                                     max_features=hyperparameters['max_features'],
                                      min_samples_split=hyperparameters['min_samples_split'])
     # if algorithm == 'XGBoost':
     #     return XGBClassifier(n_estimators=hyperparameters['n_estimators'], max_depth=hyperparameters['max_depth'],
@@ -381,17 +381,13 @@ if (regressor == 'KNeighbors Regressor'):
     hyperparameters['weights'] = st.sidebar.selectbox('Weights (default = uniform)', ['uniform', 'distance'])
 
 if (regressor == 'Decision Tree Regressor'):
-    hyperparameters['criterion'] = st.sidebar.selectbox('Criterion (default = squared_error)',
-                                                        ['squared_error', 'friedman_mse', 'absolute_error', 'poisson'])
+    hyperparameters['max_features'] = st.sidebar.selectbox('Max features (default = auto)', ['auto', 'log2', 'sqrt'])
     hyperparameters['min_samples_split'] = st.sidebar.slider('Min sample splits (default = 2)', 2, 20, 2, 1)
-    hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth (default = None)', -1, 30, -1, 1)
 
-if (regressor == 'Random forest'):
+if (regressor == 'Random Forest Regressor'):
     hyperparameters['n_estimators'] = st.sidebar.slider('Number of estimators (default = 100)', 10, 500, 100, 10)
-    hyperparameters['criterion'] = st.sidebar.selectbox('Criterion (default = squared_error)',
-                                                        ['squared_error', 'friedman_mse', 'absolute_error', 'poisson'])
+    hyperparameters['max_features'] = st.sidebar.selectbox('Max features (default = auto)', ['auto', 'log2', 'sqrt'])
     hyperparameters['min_samples_split'] = st.sidebar.slider('Min sample splits (default = 2)', 2, 20, 2, 1)
-    hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth (default = None)', -1, 30, -1, 1)
 
 # if (classifier == 'XGBoost'):
 #     hyperparameters['booster'] = st.sidebar.selectbox('Algorithm (default = gbtree)', ['gbtree', 'dart', 'gblinear'])
@@ -430,12 +426,22 @@ if (X_preprocessed.shape[1] < 100 and display_dataframe):
     st.write(X_preprocessed)
 else:
     st.text(f'Processed dataframe is too big or too sparse to display, shape: {X_preprocessed.shape}')
+st.write('')
 
 
-cv_score = cross_val_score(pipeline, X, Y, cv=folds, scoring=get_metric_name(metric))
-st.subheader('Results')
-st.write(f'Score [{metric}]: {round(abs(cv_score).mean(), 4)}')
-st.write(f'Relative standard deviation : {round(100*abs(cv_score).std()/abs(cv_score).mean(), 4)}%')
+row2_spacer1, row2_1, row2_spacer2, row2_2, row2_spacer3 = st.columns((SPACER/10, ROW/2, SPACER, ROW*1.5, SPACER/10))
+
+with row2_1:
+    cv_score = cross_val_score(pipeline, X, Y, cv=folds, scoring=get_metric_name(metric))
+    st.subheader('Results')
+    st.write(f'Score [{metric}]: {round(abs(cv_score).mean(), 4)}')
+    st.write(f'Relative standard deviation : {round(100*abs(cv_score).std()/abs(cv_score).mean(), 4)}%')
+
+with row2_2:
+    Y_pred = cross_val_predict(pipeline, X, Y, cv=folds).round(3)
+    st.write('Sampled predictions')
+    df_predictions = pd.DataFrame(np.array([Y, Y_pred]).T, columns=['Label', 'Prediction'])
+    st.write(df_predictions.head(5).T)
 
 # st.subheader('Download pipeline')
 # filename = 'classification.model'
