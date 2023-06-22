@@ -127,12 +127,12 @@ def get_ml_algorithm(algorithm, hyperparameters):
         return RandomForestRegressor(n_estimators=hyperparameters['n_estimators'],
                                      max_features=hyperparameters['max_features'],
                                      min_samples_split=hyperparameters['min_samples_split'])
-    # if algorithm == 'XGBoost':
-    #     return XGBClassifier(n_estimators=hyperparameters['n_estimators'], max_depth=hyperparameters['max_depth'],
-    #                          learning_rate=hyperparameters['learning_rate'], booster=hyperparameters['booster'])
-    # if algorithm == 'LightGBM':
-    #     return LGBMClassifier(num_leaves=hyperparameters['num_leaves'], max_depth=hyperparameters['max_depth'],
-    #                           learning_rate=hyperparameters['learning_rate'])
+    if algorithm == 'XGB Regressor':
+        return XGBRegressor(n_estimators=hyperparameters['n_estimators'], max_depth=hyperparameters['max_depth'],
+                            learning_rate=hyperparameters['learning_rate'], booster=hyperparameters['booster'])
+    if algorithm == 'LGBM Regressor':
+        return LGBMRegressor(num_leaves=hyperparameters['num_leaves'], max_depth=hyperparameters['max_depth'],
+                             learning_rate=hyperparameters['learning_rate'])
 
 
 def get_dim_reduc_algo(algorithm, hyperparameters):
@@ -389,16 +389,16 @@ if (regressor == 'Random Forest Regressor'):
     hyperparameters['max_features'] = st.sidebar.selectbox('Max features (default = auto)', ['auto', 'log2', 'sqrt'])
     hyperparameters['min_samples_split'] = st.sidebar.slider('Min sample splits (default = 2)', 2, 20, 2, 1)
 
-# if (classifier == 'XGBoost'):
-#     hyperparameters['booster'] = st.sidebar.selectbox('Algorithm (default = gbtree)', ['gbtree', 'dart', 'gblinear'])
-#     hyperparameters['n_estimators'] = st.sidebar.slider('Number of trees (default = 100)', 10, 500, 100, 10)
-#     hyperparameters['learning_rate'] = st.sidebar.slider('Learning rate (default = 0.3)', 0.01, 1.0, 0.3, 0.01)
-#     hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth of trees (default = 6)', 0, 15, 6, 1)
+if (regressor == 'XGB Regressor'):
+    hyperparameters['booster'] = st.sidebar.selectbox('Algorithm (default = gbtree)', ['gbtree', 'dart', 'gblinear'])
+    hyperparameters['n_estimators'] = st.sidebar.slider('Number of trees (default = 100)', 10, 500, 100, 10)
+    hyperparameters['learning_rate'] = st.sidebar.slider('Learning rate (default = 0.3)', 0.01, 1.0, 0.3, 0.01)
+    hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth of trees (default = 6)', 0, 15, 6, 1)
 
-# if (classifier == 'LightGBM'):
-#     hyperparameters['num_leaves'] = st.sidebar.slider('Number of leaves (default = 31)', 2, 100, 31, 1)
-#     hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth (default = -1 (no limit))', -1, 200, -1, 2)
-#     hyperparameters['learning_rate'] = st.sidebar.slider('Learning rate (default = 0.1)', 0.01, 1.0, 0.1, 0.01)
+if (regressor == 'LGBM Regressor'):
+    hyperparameters['num_leaves'] = st.sidebar.slider('Number of leaves (default = 31)', 2, 100, 31, 1)
+    hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth (default = -1 (no limit))', -1, 200, -1, 2)
+    hyperparameters['learning_rate'] = st.sidebar.slider('Learning rate (default = 0.1)', 0.01, 1.0, 0.1, 0.01)
 
 preprocessing_pipeline = Pipeline([
     ('preprocessing', preprocessing),
