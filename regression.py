@@ -127,12 +127,12 @@ def get_ml_algorithm(algorithm, hyperparameters):
         return RandomForestRegressor(n_estimators=hyperparameters['n_estimators'],
                                      max_features=hyperparameters['max_features'],
                                      min_samples_split=hyperparameters['min_samples_split'])
-    # if algorithm == 'XGBoost':
-    #     return XGBClassifier(n_estimators=hyperparameters['n_estimators'], max_depth=hyperparameters['max_depth'],
-    #                          learning_rate=hyperparameters['learning_rate'], booster=hyperparameters['booster'])
-    # if algorithm == 'LightGBM':
-    #     return LGBMClassifier(num_leaves=hyperparameters['num_leaves'], max_depth=hyperparameters['max_depth'],
-    #                           learning_rate=hyperparameters['learning_rate'])
+    if algorithm == 'XGB Regressor':
+        return XGBRegressor(n_estimators=hyperparameters['n_estimators'], max_depth=hyperparameters['max_depth'],
+                            learning_rate=hyperparameters['learning_rate'], booster=hyperparameters['booster'])
+    if algorithm == 'LGBM Regressor':
+        return LGBMRegressor(num_leaves=hyperparameters['num_leaves'], max_depth=hyperparameters['max_depth'],
+                             learning_rate=hyperparameters['learning_rate'])
 
 
 def get_dim_reduc_algo(algorithm, hyperparameters):
@@ -389,16 +389,16 @@ if (regressor == 'Random Forest Regressor'):
     hyperparameters['max_features'] = st.sidebar.selectbox('Max features (default = auto)', ['auto', 'log2', 'sqrt'])
     hyperparameters['min_samples_split'] = st.sidebar.slider('Min sample splits (default = 2)', 2, 20, 2, 1)
 
-# if (classifier == 'XGBoost'):
-#     hyperparameters['booster'] = st.sidebar.selectbox('Algorithm (default = gbtree)', ['gbtree', 'dart', 'gblinear'])
-#     hyperparameters['n_estimators'] = st.sidebar.slider('Number of trees (default = 100)', 10, 500, 100, 10)
-#     hyperparameters['learning_rate'] = st.sidebar.slider('Learning rate (default = 0.3)', 0.01, 1.0, 0.3, 0.01)
-#     hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth of trees (default = 6)', 0, 15, 6, 1)
+if (regressor == 'XGB Regressor'):
+    hyperparameters['booster'] = st.sidebar.selectbox('Algorithm (default = gbtree)', ['gbtree', 'dart', 'gblinear'])
+    hyperparameters['n_estimators'] = st.sidebar.slider('Number of trees (default = 100)', 10, 500, 100, 10)
+    hyperparameters['learning_rate'] = st.sidebar.slider('Learning rate (default = 0.3)', 0.01, 1.0, 0.3, 0.01)
+    hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth of trees (default = 6)', 0, 15, 6, 1)
 
-# if (classifier == 'LightGBM'):
-#     hyperparameters['num_leaves'] = st.sidebar.slider('Number of leaves (default = 31)', 2, 100, 31, 1)
-#     hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth (default = -1 (no limit))', -1, 200, -1, 2)
-#     hyperparameters['learning_rate'] = st.sidebar.slider('Learning rate (default = 0.1)', 0.01, 1.0, 0.1, 0.01)
+if (regressor == 'LGBM Regressor'):
+    hyperparameters['num_leaves'] = st.sidebar.slider('Number of leaves (default = 31)', 2, 100, 31, 1)
+    hyperparameters['max_depth'] = st.sidebar.slider('Maximum depth (default = -1 (no limit))', -1, 200, -1, 2)
+    hyperparameters['learning_rate'] = st.sidebar.slider('Learning rate (default = 0.1)', 0.01, 1.0, 0.1, 0.01)
 
 preprocessing_pipeline = Pipeline([
     ('preprocessing', preprocessing),
@@ -443,30 +443,35 @@ with row2_2:
     df_predictions = pd.DataFrame(np.array([Y, Y_pred]).T, columns=['Label', 'Prediction'])
     st.write(df_predictions.head(5).T)
 
-# st.subheader('Download pipeline')
-# filename = 'classification.model'
-# download_button_str = button.download_button(pipeline, filename, f'Click here to download {filename}', pickle_it=True)
-# st.markdown(download_button_str, unsafe_allow_html=True)
+st.subheader('Download pipeline')
+filename = 'classification.model'
+download_button_str = button.download_button(pipeline, filename, f'Click here to download {filename}', pickle_it=True)
+st.markdown(download_button_str, unsafe_allow_html=True)
 
-# with st.expander('How to use the model you downloaded'):
-#     row2_spacer1, row2_1, row2_spacer2, row2_2, row2_spacer3 = st.columns((SPACER/10, ROW, SPACER, ROW, SPACER/10))
+with st.expander('How to use the model you downloaded'):
+    row2_spacer1, row2_1, row2_spacer2, row2_2, row2_spacer3 = st.columns((SPACER/10, ROW, SPACER, ROW, SPACER/10))
 
-#     with row2_1:
-#         st.write('''Put the classification.model file in your working directory
-#                 copy paste the code below in your notebook/code and make sure df is in the right format,
-#                 with the right number of columns.
-#             ''')
-#         st.code('''
-#                 import joblib
-#                 pipeline = joblib.load('classification.model')
-#                 prediction = pipeline.predict(df)
-#                 print(prediction)
-#         ''')
+    with row2_1:
+        st.write('')
+        st.write('''Put the classification.model file in your working directory
+                copy paste the code below in your notebook/code and make sure the dataframe is in the right format,
+                with the right number of columns.
+            ''')
+        st.code('''
+                import joblib
+                pipeline = joblib.load('classification.model')
+                prediction = pipeline.predict(df)
+                print(prediction)
+        ''')
 
-#     with row2_2:
-#         st.markdown('**Library versions**')
-#         import sklearn
-#         st.write("sklearn version : ", sklearn.__version__)
-#         st.write("numpy version : ", np.__version__)
-#         st.write("pandas version : ", pd.__version__)
-#         st.write("joblib version : ", joblib.__version__)
+    with row2_2:
+        st.markdown('**Library versions**')
+        import sklearn
+        import lightgbm
+        import xgboost
+        st.write("sklearn version : ", sklearn.__version__)
+        st.write("numpy version : ", np.__version__)
+        st.write("pandas version : ", pd.__version__)
+        st.write("joblib version : ", joblib.__version__)
+        st.write("lightgbm version : ", lightgbm.__version__)
+        st.write("xgboost version : ", xgboost.__version__)
