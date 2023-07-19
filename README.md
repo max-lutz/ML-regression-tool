@@ -8,6 +8,7 @@ Once you have built your pipeline you can donwload it and reuse it in your proje
 
 Access app : https://ml-regression-tool.streamlit.app/
 
+![regression app](https://github.com/max-lutz/ML-regression-tool/assets/39080117/1cf5193b-3ae6-490c-9f6c-4ef4bbfa9156)
 
 How to use this reporitory:
 1. Clone the reporitory
