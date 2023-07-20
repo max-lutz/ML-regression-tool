@@ -163,7 +163,7 @@ def split_columns(df, drop_cols=[]):
     cat_cols = []
     cat_cols_missing = []
     for col in num_cols_extracted:
-        if (len(df[col].unique()) < 15):
+        if (len(df[col].unique()) < 5):
             cat_cols.append(col)
         else:
             num_cols.append(col)
@@ -187,11 +187,15 @@ def load_dataset(dataset):
             df = pd.read_csv(uploaded_file)
     elif (dataset == 'House price prediction'):
         df = wrap_load_dataset('house_price_prediction.csv', 'SalePrice')
-    elif (dataset == 'Pollution'):
-        df = wrap_load_dataset('pollution.csv', 'pm2.5')
     elif (dataset == 'Life expectancy'):
         df = wrap_load_dataset('life_expectancy.csv', 'Life expectancy')
         df = df.groupby("Country").median().drop(columns=["Year"])
+    elif (dataset == 'Student admission'):
+        df = wrap_load_dataset('Admission_Predict.csv', 'Chance_of_Admit')
+    elif (dataset == 'Fish weight'):
+        df = wrap_load_dataset('Fish.csv', 'Weight')
+    elif (dataset == 'Student performance'):
+        df = wrap_load_dataset('Student_Performance.csv', 'Performance Index')
     return df
 
 
@@ -238,8 +242,8 @@ with title_2:
 
 
 st.write("")
-dataset = st.selectbox('Select dataset', ['House price prediction',
-                       'Life expectancy', 'Pollution', 'Load my own dataset'])
+dataset = st.selectbox('Select dataset', ['House price prediction', 'Life expectancy', 'Fish weight',
+                                          'Student performance', 'Student admission', 'Load my own dataset'])
 df = load_dataset(dataset)
 
 st.sidebar.header('Select feature to predict')
