@@ -304,6 +304,7 @@ if (df is not None):
     # combine text columns in one new column because countVectorizer does not accept multiple columns
     text_cols_original = text_cols
     if (len(text_cols) != 0):
+        X_test['text'] = X_test[text_cols].astype(str).agg(' '.join, axis=1)
         X['text'] = X[text_cols].astype(str).agg(' '.join, axis=1)
         for cols in text_cols:
             drop_cols.append(cols)
