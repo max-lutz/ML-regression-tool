@@ -9,7 +9,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.compose import make_column_transformer
-from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score, cross_val_predict
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score, cross_val_predict, cross_validate
 from sklearn.linear_model import LinearRegression, ElasticNet, Lasso, Ridge
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -20,6 +20,9 @@ from xgboost.sklearn import XGBRegressor
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.decomposition import KernelPCA, TruncatedSVD
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error as mse
+from sklearn.metrics import r2_score
 
 import streamlit_download_button as button
 
@@ -99,12 +102,14 @@ def convert_none(object):
 
 
 def get_metric_name(metric):
+    metric_name = ''
     if (metric == 'MSE'):
-        return 'neg_mean_squared_error'
+        metric_name = 'neg_mean_squared_error'
     if (metric == 'RMSE'):
-        return 'neg_root_mean_squared_error'
+        metric_name = 'neg_root_mean_squared_error'
     if (metric == 'R²'):
-        return 'r2'
+        metric_name = 'r2'
+    return metric_name
 
 
 def get_ml_algorithm(algorithm, hyperparameters):
@@ -206,6 +211,16 @@ def wrapper_selectbox(label, options, visible=True):
     return st.sidebar.selectbox(label, options)
 
 
+def calculate_test_score(metric_name, y_true, y_pred):
+    if (metric_name == 'MSE'):
+        score = mse(y_true=y_true, y_pred=y_pred)
+    elif (metric_name == 'RMSE'):
+        score = np.sqrt(mse(y_true=y_true, y_pred=y_pred))
+    elif (metric_name == 'R²'):
+        score = r2_score(y_true=y_true, y_pred=y_pred)
+    return score
+
+
 # configuration of the page
 st.set_page_config(layout="wide")
 
@@ -248,6 +263,7 @@ dataset = st.selectbox('Select dataset', ['House price prediction', 'Life expect
 df = load_dataset(dataset)
 
 if (df is not None):
+    df, df_test = train_test_split(df, test_size=0.25, random_state=0)
     st.sidebar.header('Select feature to predict')
     num_cols, _, _, _, _ = split_columns(df)
     target_list = [x for x in df.columns.to_list() if x in num_cols]
@@ -256,6 +272,9 @@ if (df is not None):
 
     X = df.drop(columns=target_selected)
     Y = df[target_selected].values.ravel()
+
+    X_test = df_test.drop(columns=target_selected)
+    Y_test = df_test[target_selected].values.ravel()
 
     # Sidebar
     # selection box for the different features
@@ -440,16 +459,21 @@ if (df is not None):
 
     try:
         with row2_1:
-            cv_score = cross_val_score(pipeline, X, Y, cv=folds, scoring=get_metric_name(metric))
+            cv_score = cross_validate(pipeline, X, Y, cv=folds, scoring=get_metric_name(metric), return_estimator=True)
             st.subheader('Results')
-            st.write(f'Score [{metric}]: {round(abs(cv_score).mean(), 4)}')
-            st.write(f'Relative standard deviation : {round(100*abs(cv_score).std()/abs(cv_score).mean(), 4)}%')
+            st.write(f'Score validation [{metric}]: {round(abs(cv_score["test_score"]).mean(), 4)}')
+
+            y_pred_test = cv_score['estimator'][0].predict(X_test)
+            st.write(f'Score test [{metric}]: {round(abs(calculate_test_score(metric, Y_test, y_pred_test)), 4)}')
 
         with row2_2:
-            Y_pred = cross_val_predict(pipeline, X, Y, cv=folds).round(3)
+            y_pred_val = cross_val_predict(pipeline, X, Y, cv=folds).round(3)
             st.write('Sampled predictions')
-            df_predictions = pd.DataFrame(np.array([Y, Y_pred]).T, columns=['Label', 'Prediction'])
-            st.write(df_predictions.head(5).T)
+            df_predictions = pd.DataFrame(np.array([Y, y_pred_val]).T, columns=['Label', 'Prediction'])
+            st.write(df_predictions.head(7).T)
+
+            df_predictions = pd.DataFrame(np.array([Y_test, y_pred_test]).T, columns=['Label', 'Prediction'])
+            st.write(df_predictions.head(7).T)
     except:
         with row2_1:
             st.subheader('Results')
